@@ -1,0 +1,233 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with role and loyalty balance",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "role": { "type": "string", "enum": ["customer", "staff", "owner"] },
+        "loyaltyPoints": { "type": "integer" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "email", "displayName", "role", "loyaltyPoints", "createdAt", "updatedAt"]
+    },
+    "Order": {
+      "title": "Order",
+      "description": "Customer order details",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "orderNumber": { "type": "string" },
+        "customerName": { "type": "string" },
+        "customerPhone": { "type": "string" },
+        "orderType": { "type": "string", "enum": ["PICKUP", "DELIVERY"] },
+        "deliveryAddress": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["NEW", "CONFIRMED", "PREPARING", "READY", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"] },
+        "notes": { "type": "string" },
+        "paymentMethod": { "type": "string", "enum": ["CASH_ON_DELIVERY", "CASH_AT_PICKUP"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "orderNumber", "customerName", "customerPhone", "orderType", "totalAmount", "status", "paymentMethod", "createdAt", "updatedAt"]
+    },
+    "OrderItem": {
+      "title": "OrderItem",
+      "description": "Item belonging to an order",
+      "type": "object",
+      "properties": {
+        "orderId": { "type": "string" },
+        "productId": { "type": "string" },
+        "productName": { "type": "string" },
+        "quantity": { "type": "integer" },
+        "unitPrice": { "type": "number" },
+        "selectedOption": { "type": "string" },
+        "selectedExtras": { "type": "array" },
+        "itemNotes": { "type": "string" },
+        "totalPrice": { "type": "number" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orderId", "productId", "productName", "quantity", "unitPrice", "totalPrice", "createdAt"]
+    },
+    "Product": {
+      "title": "Product",
+      "description": "Menu dish or item at Pedro's Snack",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "price": { "type": "number" },
+        "mghamessPrice": { "type": "number" },
+        "alonePrice": { "type": "number" },
+        "withFriesPrice": { "type": "number" },
+        "gratinePrice": { "type": "number" },
+        "description": { "type": "string" },
+        "isAvailable": { "type": "boolean" },
+        "isFeatured": { "type": "boolean" },
+        "isBestSeller": { "type": "boolean" },
+        "options": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "category", "price", "isAvailable", "createdAt", "updatedAt"]
+    },
+    "Category": {
+      "title": "Category",
+      "description": "Menu category",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "displayOrder": { "type": "integer" },
+        "iconName": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["name", "displayOrder", "createdAt", "updatedAt"]
+    },
+    "Promotion": {
+      "title": "Promotion",
+      "description": "Lunch offers, special menus, and promos",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "description": { "type": "string" },
+        "price": { "type": "number" },
+        "contents": { "type": "string" },
+        "isAvailable": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "price", "contents", "isAvailable", "createdAt", "updatedAt"]
+    },
+    "LoyaltyReward": {
+      "title": "LoyaltyReward",
+      "description": "Configurable loyalty rewards catalog",
+      "type": "object",
+      "properties": {
+        "title": { "type": "string" },
+        "pointsRequired": { "type": "integer" },
+        "description": { "type": "string" },
+        "discountAmount": { "type": "number" },
+        "isAvailable": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["title", "pointsRequired", "isAvailable", "createdAt", "updatedAt"]
+    },
+    "LoyaltyTransaction": {
+      "title": "LoyaltyTransaction",
+      "description": "User loyalty points audit trail",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "points": { "type": "integer" },
+        "type": { "type": "string", "enum": ["EARNED", "REDEEMED"] },
+        "orderId": { "type": "string" },
+        "description": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "points", "type", "description", "createdAt"]
+    },
+    "Review": {
+      "title": "Review",
+      "description": "Customer feedback and ratings",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "userName": { "type": "string" },
+        "orderId": { "type": "string" },
+        "foodRating": { "type": "integer" },
+        "presentationRating": { "type": "integer" },
+        "serviceRating": { "type": "integer" },
+        "deliveryRating": { "type": "integer" },
+        "overallRating": { "type": "integer" },
+        "comment": { "type": "string" },
+        "reply": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "userName", "overallRating", "comment", "createdAt", "updatedAt"]
+    },
+    "RestaurantSettings": {
+      "title": "RestaurantSettings",
+      "description": "General restaurant configuration and contact info",
+      "type": "object",
+      "properties": {
+        "restaurantName": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "mapsUrl": { "type": "string" },
+        "deliveryAvailable": { "type": "boolean" },
+        "deliveryFee": { "type": "number" },
+        "minOrderDelivery": { "type": "number" },
+        "openingHours": { "type": "string" },
+        "instagramHandle": { "type": "string" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["restaurantName", "phone", "address", "deliveryAvailable", "updatedAt"]
+    },
+    "Admin": {
+      "title": "Admin",
+      "description": "Authorized staff or administrator",
+      "type": "object",
+      "properties": {
+        "email": { "type": "string" },
+        "role": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["email", "role", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Customer and staff user profiles"
+    },
+    "/orders/{orderId}": {
+      "schema": { "$ref": "#/entities/Order" },
+      "description": "Customer food orders"
+    },
+    "/orders/{orderId}/items/{itemId}": {
+      "schema": { "$ref": "#/entities/OrderItem" },
+      "description": "Items in an order"
+    },
+    "/products/{productId}": {
+      "schema": { "$ref": "#/entities/Product" },
+      "description": "Catalog of food items and drinks"
+    },
+    "/categories/{categoryId}": {
+      "schema": { "$ref": "#/entities/Category" },
+      "description": "Menu categories"
+    },
+    "/promotions/{promoId}": {
+      "schema": { "$ref": "#/entities/Promotion" },
+      "description": "Special lunch offers and promotions"
+    },
+    "/loyaltyRewards/{rewardId}": {
+      "schema": { "$ref": "#/entities/LoyaltyReward" },
+      "description": "Redeemable loyalty rewards"
+    },
+    "/users/{userId}/loyaltyTransactions/{transactionId}": {
+      "schema": { "$ref": "#/entities/LoyaltyTransaction" },
+      "description": "User points audit trail"
+    },
+    "/reviews/{reviewId}": {
+      "schema": { "$ref": "#/entities/Review" },
+      "description": "Verified customer reviews"
+    },
+    "/restaurantSettings/{settingId}": {
+      "schema": { "$ref": "#/entities/RestaurantSettings" },
+      "description": "Restaurant operational configuration"
+    },
+    "/admins/{adminId}": {
+      "schema": { "$ref": "#/entities/Admin" },
+      "description": "Administrative authority mapping"
+    }
+  }
+}

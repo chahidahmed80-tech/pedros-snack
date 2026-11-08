@@ -1,0 +1,6 @@
+{
+  "name": "Pedro's Snack",
+  "description": "Pedro's Snack — Premium Restaurant Platform for Khouribga, Morocco with full menu, online orders, loyalty rewards, and restaurant management.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

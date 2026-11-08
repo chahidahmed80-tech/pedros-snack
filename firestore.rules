@@ -1,0 +1,286 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // 1. GLOBAL SAFETY NET: Default-deny all paths
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. GLOBAL HARDENED HELPERS
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function isBootstrapAdmin() {
+      return isSignedIn() &&
+        request.auth.token.email == 'chahidahmed80@gmail.com' &&
+        request.auth.token.email_verified == true;
+    }
+
+    function isAdmin() {
+      return isBootstrapAdmin() ||
+        (isSignedIn() && exists(/databases/$(database)/documents/admins/$(request.auth.uid)));
+    }
+
+    // 3. VALIDATION BLUEPRINTS
+    function isValidUser(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.email is string && data.email.size() <= 128 &&
+             data.displayName is string && data.displayName.size() <= 100 &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
+             (!('address' in data) || (data.address is string && data.address.size() <= 300)) &&
+             data.role in ['customer', 'staff', 'owner'] &&
+             data.loyaltyPoints is int && data.loyaltyPoints >= 0 &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidOrder(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.orderNumber is string && data.orderNumber.size() > 0 && data.orderNumber.size() <= 64 &&
+             data.customerName is string && data.customerName.size() > 0 && data.customerName.size() <= 100 &&
+             data.customerPhone is string && data.customerPhone.size() > 0 && data.customerPhone.size() <= 30 &&
+             data.orderType in ['PICKUP', 'DELIVERY'] &&
+             (!('deliveryAddress' in data) || (data.deliveryAddress is string && data.deliveryAddress.size() <= 300)) &&
+             data.totalAmount is number && data.totalAmount >= 0 &&
+             data.status in ['NEW', 'CONFIRMED', 'PREPARING', 'READY', 'OUT_FOR_DELIVERY', 'DELIVERED', 'CANCELLED'] &&
+             (!('notes' in data) || (data.notes is string && data.notes.size() <= 500)) &&
+             data.paymentMethod in ['CASH_ON_DELIVERY', 'CASH_AT_PICKUP'] &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidOrderItem(data) {
+      return data.orderId is string && data.orderId.size() > 0 && data.orderId.size() <= 128 &&
+             data.productId is string && data.productId.size() > 0 && data.productId.size() <= 128 &&
+             data.productName is string && data.productName.size() > 0 && data.productName.size() <= 120 &&
+             data.quantity is int && data.quantity > 0 && data.quantity <= 100 &&
+             data.unitPrice is number && data.unitPrice >= 0 &&
+             data.totalPrice is number && data.totalPrice >= 0 &&
+             (!('selectedOption' in data) || (data.selectedOption is string && data.selectedOption.size() <= 100)) &&
+             (!('selectedExtras' in data) || (data.selectedExtras is list && data.selectedExtras.size() <= 20)) &&
+             (!('itemNotes' in data) || (data.itemNotes is string && data.itemNotes.size() <= 200)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidProduct(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 120 &&
+             data.category is string && data.category.size() > 0 && data.category.size() <= 60 &&
+             data.price is number && data.price >= 0 &&
+             (!('mghamessPrice' in data) || (data.mghamessPrice is number && data.mghamessPrice >= 0)) &&
+             (!('alonePrice' in data) || (data.alonePrice is number && data.alonePrice >= 0)) &&
+             (!('withFriesPrice' in data) || (data.withFriesPrice is number && data.withFriesPrice >= 0)) &&
+             (!('gratinePrice' in data) || (data.gratinePrice is number && data.gratinePrice >= 0)) &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 500)) &&
+             data.isAvailable is bool &&
+             (!('isFeatured' in data) || data.isFeatured is bool) &&
+             (!('isBestSeller' in data) || data.isBestSeller is bool) &&
+             (!('options' in data) || (data.options is list && data.options.size() <= 20)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidCategory(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 60 &&
+             data.displayOrder is int &&
+             (!('iconName' in data) || (data.iconName is string && data.iconName.size() <= 60)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidPromotion(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 300)) &&
+             data.price is number && data.price >= 0 &&
+             data.contents is string && data.contents.size() <= 300 &&
+             data.isAvailable is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidLoyaltyReward(data) {
+      return data.title is string && data.title.size() > 0 && data.title.size() <= 100 &&
+             data.pointsRequired is int && data.pointsRequired > 0 &&
+             (!('description' in data) || (data.description is string && data.description.size() <= 300)) &&
+             (!('discountAmount' in data) || (data.discountAmount is number && data.discountAmount >= 0)) &&
+             data.isAvailable is bool &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidLoyaltyTransaction(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.points is int &&
+             data.type in ['EARNED', 'REDEEMED'] &&
+             (!('orderId' in data) || (data.orderId is string && data.orderId.size() <= 128)) &&
+             data.description is string && data.description.size() <= 200 &&
+             data.createdAt is timestamp && data.createdAt <= request.time;
+    }
+
+    function isValidReview(data) {
+      return data.userId is string && data.userId.size() > 0 && data.userId.size() <= 128 &&
+             data.userName is string && data.userName.size() > 0 && data.userName.size() <= 100 &&
+             (!('orderId' in data) || (data.orderId is string && data.orderId.size() <= 128)) &&
+             (!('foodRating' in data) || (data.foodRating is int && data.foodRating >= 1 && data.foodRating <= 5)) &&
+             (!('presentationRating' in data) || (data.presentationRating is int && data.presentationRating >= 1 && data.presentationRating <= 5)) &&
+             (!('serviceRating' in data) || (data.serviceRating is int && data.serviceRating >= 1 && data.serviceRating <= 5)) &&
+             (!('deliveryRating' in data) || (data.deliveryRating is int && data.deliveryRating >= 1 && data.deliveryRating <= 5)) &&
+             data.overallRating is int && data.overallRating >= 1 && data.overallRating <= 5 &&
+             data.comment is string && data.comment.size() <= 500 &&
+             (!('reply' in data) || (data.reply is string && data.reply.size() <= 500)) &&
+             data.createdAt is timestamp && data.createdAt <= request.time &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    function isValidRestaurantSettings(data) {
+      return data.restaurantName is string && data.restaurantName.size() > 0 && data.restaurantName.size() <= 100 &&
+             data.phone is string && data.phone.size() > 0 && data.phone.size() <= 30 &&
+             data.address is string && data.address.size() > 0 && data.address.size() <= 300 &&
+             (!('mapsUrl' in data) || (data.mapsUrl is string && data.mapsUrl.size() <= 300)) &&
+             data.deliveryAvailable is bool &&
+             (!('deliveryFee' in data) || (data.deliveryFee is number && data.deliveryFee >= 0)) &&
+             (!('minOrderDelivery' in data) || (data.minOrderDelivery is number && data.minOrderDelivery >= 0)) &&
+             (!('openingHours' in data) || (data.openingHours is string && data.openingHours.size() <= 200)) &&
+             (!('instagramHandle' in data) || (data.instagramHandle is string && data.instagramHandle.size() <= 60)) &&
+             data.updatedAt is timestamp && data.updatedAt <= request.time;
+    }
+
+    // 4. COLLECTION RULES
+
+    // Users
+    match /users/{userId} {
+      allow get: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+      allow list: if isAdmin();
+      allow create: if isSignedIn() &&
+                    request.auth.uid == userId &&
+                    incoming().userId == request.auth.uid &&
+                    incoming().role in ['customer'] &&
+                    incoming().loyaltyPoints == 0 &&
+                    isValidUser(incoming());
+      allow update: if isSignedIn() && (request.auth.uid == userId || isAdmin()) &&
+                    isValidUser(incoming()) &&
+                    (isAdmin() ||
+                     (incoming().userId == existing().userId &&
+                      incoming().role == existing().role &&
+                      incoming().loyaltyPoints == existing().loyaltyPoints &&
+                      incoming().createdAt == existing().createdAt &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'phone', 'address', 'updatedAt'])));
+      allow delete: if isAdmin();
+
+      // Nested Loyalty Transactions
+      match /loyaltyTransactions/{transactionId} {
+        allow get, list: if isSignedIn() && (request.auth.uid == userId || isAdmin());
+        allow create: if isSignedIn() && (isAdmin() || (request.auth.uid == userId && incoming().userId == userId && isValidLoyaltyTransaction(incoming())));
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // Orders
+    match /orders/{orderId} {
+      allow get: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow list: if isSignedIn() && (resource.data.userId == request.auth.uid || isAdmin());
+      allow create: if isSignedIn() &&
+                    request.auth.uid == incoming().userId &&
+                    incoming().status == 'NEW' &&
+                    isValidOrder(incoming());
+      allow update: if isSignedIn() &&
+                    isValidOrder(incoming()) &&
+                    (isAdmin() ||
+                     (existing().userId == request.auth.uid &&
+                      incoming().userId == existing().userId &&
+                      incoming().createdAt == existing().createdAt &&
+                      existing().status == 'NEW' &&
+                      incoming().status == 'CANCELLED' &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt'])));
+      allow delete: if isAdmin();
+
+      // Subcollection: Order Items
+      match /items/{itemId} {
+        allow get, list: if isSignedIn() &&
+          (get(/databases/$(database)/documents/orders/$(orderId)).data.userId == request.auth.uid || isAdmin());
+        allow create: if isSignedIn() &&
+          (get(/databases/$(database)/documents/orders/$(orderId)).data.userId == request.auth.uid || isAdmin()) &&
+          isValidOrderItem(incoming());
+        allow update, delete: if isAdmin();
+      }
+    }
+
+    // Products (Public read for digital menu)
+    match /products/{productId} {
+      allow get, list: if true;
+      allow create: if isAdmin() && isValidProduct(incoming());
+      allow update: if isAdmin() && isValidProduct(incoming()) &&
+                    incoming().createdAt == existing().createdAt;
+      allow delete: if isAdmin();
+    }
+
+    // Categories (Public read)
+    match /categories/{categoryId} {
+      allow get, list: if true;
+      allow create: if isAdmin() && isValidCategory(incoming());
+      allow update: if isAdmin() && isValidCategory(incoming()) &&
+                    incoming().createdAt == existing().createdAt;
+      allow delete: if isAdmin();
+    }
+
+    // Promotions (Public read)
+    match /promotions/{promoId} {
+      allow get, list: if true;
+      allow create: if isAdmin() && isValidPromotion(incoming());
+      allow update: if isAdmin() && isValidPromotion(incoming()) &&
+                    incoming().createdAt == existing().createdAt;
+      allow delete: if isAdmin();
+    }
+
+    // Loyalty Rewards Catalog (Public read)
+    match /loyaltyRewards/{rewardId} {
+      allow get, list: if true;
+      allow create: if isAdmin() && isValidLoyaltyReward(incoming());
+      allow update: if isAdmin() && isValidLoyaltyReward(incoming()) &&
+                    incoming().createdAt == existing().createdAt;
+      allow delete: if isAdmin();
+    }
+
+    // Reviews (Public read, verified users write)
+    match /reviews/{reviewId} {
+      allow get, list: if true;
+      allow create: if isSignedIn() &&
+                    request.auth.uid == incoming().userId &&
+                    isValidReview(incoming());
+      allow update: if isSignedIn() &&
+                    isValidReview(incoming()) &&
+                    (isAdmin() ||
+                     (existing().userId == request.auth.uid &&
+                      incoming().userId == existing().userId &&
+                      incoming().createdAt == existing().createdAt &&
+                      incoming().diff(existing()).affectedKeys().hasOnly(['foodRating', 'presentationRating', 'serviceRating', 'deliveryRating', 'overallRating', 'comment', 'updatedAt'])));
+      allow delete: if isAdmin();
+    }
+
+    // Restaurant Settings (Public read, Admin update)
+    match /restaurantSettings/{settingId} {
+      allow get, list: if true;
+      allow create, update: if isAdmin() && isValidRestaurantSettings(incoming());
+      allow delete: if isAdmin();
+    }
+
+    // Admins registry
+    match /admins/{adminId} {
+      allow get, list: if isAdmin();
+      allow create, update, delete: if isAdmin();
+    }
+  }
+}
